@@ -95,16 +95,15 @@ impl QueryPart {
                 let half_of_highest_score = scored_dirs
                     .last() // since it's sorted by score the last one has the most score
                     .map(ScoredDirectory::score)
-                    .unwrap_or_default()
-                    / 2;
+                    .unwrap_or_default() as f64
+                    / 2.;
 
                 scored_dirs
                     .iter()
                     // remove dirs with low score
                     .filter(|scored_dir| {
-                        scored_dir.score() > 0
-                            && f64::from(scored_dir.score()) >= average_score
-                            && scored_dir.score() >= half_of_highest_score
+                        let score = scored_dir.score() as f64;
+                        score > 0. && score >= average_score && score >= half_of_highest_score
                     })
                     .map(|scored_dir| scored_dir.directory().clone())
                     .collect()
