@@ -69,40 +69,40 @@ impl QueryPart {
                 vec![dir]
             }
             QueryPart::Text(text) => {
-                let mut scored_dirs = scored_directories(
-                    &dirs
-                        .iter()
-                        .flat_map(|dir| sub_directories(dir.location().as_path(), 0))
-                        .collect::<Vec<_>>(),
-                    text.as_str(),
-                );
+                let scored_dirs = {
+                    let mut dirs = scored_directories(
+                        &dirs
+                            .iter()
+                            .flat_map(|dir| sub_directories(dir.location(), 0))
+                            .collect::<Vec<_>>(),
+                        text.as_str(),
+                    );
+                    // sort by score, if scores are equal by alphabetical order
+                    dirs.sort_unstable_by(|a, b| {
+                        a.score()
+                            .cmp(&b.score())
+                            .then(a.directory().location().cmp(b.directory().location()))
+                    });
+                    dirs
+                };
 
-                let average_score: f64 = scored_dirs
+                let average_score = scored_dirs
                     .iter()
                     .map(|scored_dir| f64::from(scored_dir.score()))
                     .sum::<f64>()
                     / scored_dirs.len() as f64;
 
                 let half_of_highest_score = scored_dirs
-                    .iter()
+                    .last() // since it's sorted by score the last one has the most score
                     .map(ScoredDirectory::score)
-                    .max()
                     .unwrap_or_default()
                     / 2;
-
-                // sort by score, if scores are equal by alphabetical order
-                scored_dirs.sort_unstable_by(|a, b| {
-                    a.score()
-                        .cmp(&b.score())
-                        .then(a.directory().location().cmp(b.directory().location()))
-                });
 
                 scored_dirs
                     .iter()
                     // remove dirs with low score
                     .filter(|scored_dir| {
-                        f64::from(scored_dir.score()) > 0.0
-                            && f64::from(scored_dir.score()) >= average_score
+                        f64::from(scored_dir.score()) >= average_score
                             && scored_dir.score() >= half_of_highest_score
                     })
                     .map(|scored_dir| scored_dir.directory().clone())
