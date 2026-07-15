@@ -92,13 +92,13 @@ Default: *none*
 
 ## Environment variables
 
-### LACY_NO_ARGS_PATH
+### `$LACY_NO_ARGS_PATH`
 
 Controls where you will jump if you use the lacy command without extra arguments.
 
 Default: `~`
 
-### LACY_FILTER_CWD
+### `$LACY_FILTER_CWD`
 
 Controls whether current directory (or its parents) would be ignored when matching.
 
