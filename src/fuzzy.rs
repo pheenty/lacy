@@ -29,7 +29,7 @@ pub fn fuzzy_match_score(input: &str, pattern: &str) -> i32 {
             .take_while(|(inp, pat)| inp == pat)
             .count() as i32;
 
-    let char_occuranse_score = {
+    let char_occurrence_score = {
         let input = freqmap(&input);
         freqmap(&pattern)
             .iter()
@@ -44,7 +44,7 @@ pub fn fuzzy_match_score(input: &str, pattern: &str) -> i32 {
             .sum::<i32>()
     };
 
-    (whole_pattern_score + starting_score + char_occuranse_score).max(0)
+    (whole_pattern_score + starting_score + char_occurrence_score).max(0)
 }
 
 fn freqmap(str: &str) -> HashMap<char, i32> {
