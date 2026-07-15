@@ -34,10 +34,11 @@ pub fn fuzzy_match_score(input: &str, pattern: &str) -> Score {
         let (hits, misses) = freqmap(&pattern)
             .iter()
             .map(|(char, &amt_in_pat)| {
-                let hits = input.get(char).copied().unwrap_or_default().min(amt_in_pat);
+                let amt_in_inp = input.get(char).copied().unwrap_or_default();
+                let hits = amt_in_pat.min(amt_in_inp);
                 (hits, amt_in_pat - hits)
             })
-            .reduce(|(hits_acc, miss_acc), (hit, miss)| (hits_acc + hit, miss_acc + miss))
+            .reduce(|(hits_acc, misses_acc), (hits, misses)| (hits_acc + hits, misses_acc + misses))
             .unwrap_or_default();
 
         (
@@ -49,7 +50,7 @@ pub fn fuzzy_match_score(input: &str, pattern: &str) -> Score {
     (whole_pattern_score + starting_score + char_occurrence_score).saturating_sub(char_miss_penalty)
 }
 
-fn freqmap(str: &str) -> HashMap<char, u16> {
+fn freqmap(str: &str) -> HashMap<char, u8> {
     let mut map = HashMap::with_capacity(str.len());
     for char in str.chars() {
         *map.entry(char).or_default() += 1;
