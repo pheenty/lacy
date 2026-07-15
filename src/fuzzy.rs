@@ -39,7 +39,7 @@ pub fn fuzzy_match_score(input: &str, pattern: &str) -> i32 {
                 let hits = amt_in_pat.min(&amt_in_inp);
                 let misses = amt_in_pat - hits;
 
-                (hits * SCORE_CHARS_HIT) + (misses * SCORE_CHARS_MISS)
+                SCORE_CHARS_HIT * hits + SCORE_CHARS_MISS * misses
             })
             .sum::<i32>()
     };
@@ -48,11 +48,11 @@ pub fn fuzzy_match_score(input: &str, pattern: &str) -> i32 {
 }
 
 fn freqmap(str: &str) -> HashMap<char, i32> {
-    str.chars()
-        .fold(HashMap::with_capacity(str.len()), |mut acc, char| {
-            *acc.entry(char).or_default() += 1;
-            acc
-        })
+    let mut map = HashMap::with_capacity(str.len());
+    for char in str.chars() {
+        *map.entry(char).or_default() += 1;
+    }
+    map
 }
 
 #[cfg(test)]
