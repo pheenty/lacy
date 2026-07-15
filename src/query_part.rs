@@ -102,7 +102,8 @@ impl QueryPart {
                     .iter()
                     // remove dirs with low score
                     .filter(|scored_dir| {
-                        f64::from(scored_dir.score()) >= average_score
+                        scored_dir.score() > 0
+                            && f64::from(scored_dir.score()) >= average_score
                             && scored_dir.score() >= half_of_highest_score
                     })
                     .map(|scored_dir| scored_dir.directory().clone())

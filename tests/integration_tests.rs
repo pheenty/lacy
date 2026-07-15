@@ -100,7 +100,10 @@ fn test_absolute() {
 #[test]
 fn test_nonexisting() {
     let env = TempEnv::new();
-    assert!(env.resolve_query("test zzzzzzzzz zzzzzzzzz").is_empty());
+    assert_eq!(
+        env.resolve_query("test zzzzzzzzz zzzzzzzzz"),
+        Vec::<PathBuf>::new()
+    );
 }
 
 #[test]
