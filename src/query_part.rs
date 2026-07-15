@@ -87,7 +87,7 @@ impl QueryPart {
                     .iter()
                     .map(ScoredDirectory::score)
                     .max()
-                    .unwrap_or(0_i32)
+                    .unwrap_or_default()
                     / 2;
 
                 // sort by score, if scores are equal by alphabetical order

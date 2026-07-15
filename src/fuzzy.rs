@@ -1,16 +1,16 @@
 use std::{collections::HashMap, iter};
 
-const SCORE_PATTERN_FULL_MATCH: i32 = 60;
-const SCORE_PATTERN_CONTAINS: i32 = 10;
+pub type Score = u16;
 
-const SCORE_STARTING_CHAR: i32 = 5;
-
-const SCORE_CHARS_HIT: i32 = 1;
-const SCORE_CHARS_MISS: i32 = -5;
+const SCORE_PATTERN_FULL_MATCH: Score = 60;
+const SCORE_PATTERN_CONTAINED: Score = 10;
+const SCORE_CHAR_STARTING: Score = 5;
+const SCORE_CHAR_HIT: Score = 1;
+const PENALTY_CHAR_MISS: Score = 5;
 
 /// Creates a score of how much the input and the pattern match
 /// The higher the score the better. There is no max score.
-pub fn fuzzy_match_score(input: &str, pattern: &str) -> i32 {
+pub fn fuzzy_match_score(input: &str, pattern: &str) -> Score {
     let input = input.to_lowercase();
     let pattern = pattern.to_lowercase();
 
@@ -18,36 +18,38 @@ pub fn fuzzy_match_score(input: &str, pattern: &str) -> i32 {
         if input == pattern {
             SCORE_PATTERN_FULL_MATCH
         } else if input.contains(&pattern) {
-            SCORE_PATTERN_CONTAINS
+            SCORE_PATTERN_CONTAINED
         } else {
             0
         }
     };
 
-    let starting_score = SCORE_STARTING_CHAR
+    let starting_score = SCORE_CHAR_STARTING
         * iter::zip(input.chars(), pattern.chars())
             .take_while(|(inp, pat)| inp == pat)
-            .count() as i32;
+            .count() as Score;
 
-    let char_occurrence_score = {
+    let (char_occurrence_score, char_miss_penalty) = {
         let input = freqmap(&input);
-        freqmap(&pattern)
+        let (hits, misses) = freqmap(&pattern)
             .iter()
-            .map(|(char, amt_in_pat)| {
-                let amt_in_inp = input.get(char).copied().unwrap_or_default();
-
-                let hits = amt_in_pat.min(&amt_in_inp);
-                let misses = amt_in_pat - hits;
-
-                SCORE_CHARS_HIT * hits + SCORE_CHARS_MISS * misses
+            .map(|(char, &amt_in_pat)| {
+                let hits = input.get(char).copied().unwrap_or_default().min(amt_in_pat);
+                (hits, amt_in_pat - hits)
             })
-            .sum::<i32>()
+            .reduce(|(hits_acc, miss_acc), (hit, miss)| (hits_acc + hit, miss_acc + miss))
+            .unwrap_or_default();
+
+        (
+            SCORE_CHAR_HIT * hits as Score,
+            PENALTY_CHAR_MISS * misses as Score,
+        )
     };
 
-    (whole_pattern_score + starting_score + char_occurrence_score).max(0)
+    (whole_pattern_score + starting_score + char_occurrence_score).saturating_sub(char_miss_penalty)
 }
 
-fn freqmap(str: &str) -> HashMap<char, i32> {
+fn freqmap(str: &str) -> HashMap<char, u16> {
     let mut map = HashMap::with_capacity(str.len());
     for char in str.chars() {
         *map.entry(char).or_default() += 1;
