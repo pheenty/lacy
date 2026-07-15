@@ -103,8 +103,8 @@ Default: `~`
 Controls whether current directory (or its parents) would be ignored when matching.
 
 For example, say you're in `~/git`, you also have `~/Games`, and you use `y .. g`.
-0 would prompt you to choose between `~/git` and `~/Games`.
-1 would just jump to `Games`.
-2 would exclude `git` even if you were in `~/git/lacy` and used `y ... g`.
+- `0` would prompt you to choose between `~/git` and `~/Games`.
+- `1` would just jump to `Games`.
+- `2` would exclude `git` even if you were in `~/git/lacy` and used `y ... g`.
 
 Default: `1`
