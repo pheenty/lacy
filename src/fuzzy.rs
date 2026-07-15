@@ -1,52 +1,63 @@
+use std::{collections::HashMap, iter};
+
+const SCORE_PATTERN_FULL_MATCH: i32 = 60;
+const SCORE_PATTERN_CONTAINS: i32 = 10;
+
+const SCORE_STARTING_CHAR: i32 = 5;
+
+const SCORE_CHARS_HIT: i32 = 1;
+const SCORE_CHARS_MISS: i32 = -5;
+
 /// Creates a score of how much the input and the pattern match
-///
 /// The higher the score the better. There is no max score.
 pub fn fuzzy_match_score(input: &str, pattern: &str) -> i32 {
-    let mut score = 0;
-    if input
-        .to_lowercase()
-        .contains(pattern.to_lowercase().as_str())
-    {
-        score += 10;
-    }
-    let mut dir_name_mut = input.to_string();
-    for c in pattern.chars() {
-        if dir_name_mut.to_lowercase().contains(c.to_ascii_lowercase()) {
-            score += 1;
-            // strip the char to avoid multiple matches
-            dir_name_mut = dir_name_mut.replacen(c, "", 1);
+    let input = input.to_lowercase();
+    let pattern = pattern.to_lowercase();
+
+    let whole_pattern_score = {
+        if input == pattern {
+            SCORE_PATTERN_FULL_MATCH
+        } else if input.contains(&pattern) {
+            SCORE_PATTERN_CONTAINS
         } else {
-            score -= 5;
+            0
         }
-    }
-    if input.to_lowercase() == pattern.to_lowercase() {
-        score += 50;
-    }
-    if score < 0 {
-        score = 0;
-    }
-    score
+    };
+
+    let starting_score = SCORE_STARTING_CHAR
+        * iter::zip(input.chars(), pattern.chars())
+            .take_while(|(inp, pat)| inp == pat)
+            .count() as i32;
+
+    let char_occuranse_score = {
+        let input = freqmap(&input);
+        freqmap(&pattern)
+            .iter()
+            .map(|(char, amt_in_pat)| {
+                let amt_in_inp = input.get(char).copied().unwrap_or_default();
+
+                let hits = amt_in_pat.min(&amt_in_inp);
+                let misses = amt_in_pat - hits;
+
+                (hits * SCORE_CHARS_HIT) + (misses * SCORE_CHARS_MISS)
+            })
+            .sum::<i32>()
+    };
+
+    (whole_pattern_score + starting_score + char_occuranse_score).max(0)
+}
+
+fn freqmap(str: &str) -> HashMap<char, i32> {
+    str.chars()
+        .fold(HashMap::with_capacity(str.len()), |mut acc, char| {
+            *acc.entry(char).or_default() += 1;
+            acc
+        })
 }
 
 #[cfg(test)]
 mod tests {
     use super::fuzzy_match_score as score;
-
-    #[test]
-    #[should_panic]
-    fn not_yet_implemented() {
-        // TODO: Should give more points if parts of query match
-        // beginning parts of input parts
-        assert!(score("test", "tt") > score("test", "t"));
-        assert!(score("test-abc", "ta") > score("test-abc", "te"));
-        assert!(score("test abc", "ta") > score("test abc", "te"));
-        assert!(score("test_abc", "ta") > score("test_abc", "te"));
-
-        assert!(score("test_abc_a", "taa") > score("test_abc_a", "te"));
-        assert!(score("test_abc_a", "taa") > score("test_abc_a", "tea"));
-
-        assert!(score("testAbc", "ta") > score("testAbc", "te"));
-    }
 
     #[test]
     fn test_simple() {
@@ -61,6 +72,19 @@ mod tests {
     fn test_advanced() {
         assert!(score("helloworld", "world") > score("helloworld", "elwo"));
         assert!(score("helloworld", "hello") > score("helloworld", "hellohello"));
+    }
+
+    #[test]
+    fn test_starting_with() {
+        assert!(score("test", "t") > score("test", "tt"));
+        assert!(score("test-abc", "te") > score("test-abc", "ta"));
+        assert!(score("test abc", "te") > score("test abc", "ta"));
+        assert!(score("test_abc", "te") > score("test_abc", "ta"));
+
+        assert!(score("test_abc_a", "te") > score("test_abc_a", "taa"));
+        assert!(score("test_abc_a", "tea") > score("test_abc_a", "taa"));
+
+        assert!(score("testAbc", "te") > score("testAbc", "tA"));
     }
 
     #[test]

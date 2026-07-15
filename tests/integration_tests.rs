@@ -183,10 +183,11 @@ fn test_dir_skip() {
     let env = TempEnv::new();
 
     assert_eq!(
-        env.resolve_query("test gamma - u"),
+        env.resolve_query("test alpha - eps"),
         vec!(
-            env.abs_path("test/gamma/sigm#a/upsilon3"),
-            env.abs_path("test/gamma/sigma9/t@u0"),
+            env.abs_path("test/alpha/beta/epsil@on8"),
+            env.abs_path("test/alpha/betabeta/epsil#on"),
+            env.abs_path("test/alpha/betabeta/epsil0n"),
         )
     );
     assert_eq!(
