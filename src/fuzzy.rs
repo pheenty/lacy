@@ -31,26 +31,25 @@ pub fn fuzzy_match_score(input: &str, pattern: &str) -> Score {
 
     let (char_occurrence_score, char_miss_penalty) = {
         let input = freqmap(&input);
-        let (hits, misses) = freqmap(&pattern)
+        let pattern = freqmap(&pattern);
+
+        let hits = pattern
             .iter()
             .map(|(char, &amt_in_pat)| {
                 let amt_in_inp = input.get(char).copied().unwrap_or_default();
-                let hits = amt_in_pat.min(amt_in_inp);
-                (hits, amt_in_pat - hits)
+                amt_in_pat.min(amt_in_inp)
             })
-            .reduce(|(hits_acc, misses_acc), (hits, misses)| (hits_acc + hits, misses_acc + misses))
-            .unwrap_or_default();
+            .sum::<Score>();
+        let misses = pattern.values().sum::<Score>() - hits;
 
-        (
-            SCORE_CHAR_HIT * hits as Score,
-            PENALTY_CHAR_MISS * misses as Score,
-        )
+        (SCORE_CHAR_HIT * hits, PENALTY_CHAR_MISS * misses)
     };
 
     (whole_pattern_score + starting_score + char_occurrence_score).saturating_sub(char_miss_penalty)
 }
 
-fn freqmap(str: &str) -> HashMap<char, u8> {
+// Doesn't technically need to be score as this is some abstract char count but it's convenient
+fn freqmap(str: &str) -> HashMap<char, Score> {
     let mut map = HashMap::with_capacity(str.len());
     for char in str.chars() {
         *map.entry(char).or_default() += 1;
