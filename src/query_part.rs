@@ -90,10 +90,12 @@ impl QueryPart {
                     .unwrap_or(0_i32)
                     / 2;
 
-                // sort by score, if scores are equal by alphabetical order
+                // sort descending by score
+                // else ascending, by alphabet
                 scored_dirs.sort_unstable_by(|a, b| {
                     a.score()
                         .cmp(&b.score())
+                        .reverse()
                         .then(a.directory().location().cmp(b.directory().location()))
                 });
 
