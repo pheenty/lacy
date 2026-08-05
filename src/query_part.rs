@@ -77,10 +77,12 @@ impl QueryPart {
                             .collect::<Vec<_>>(),
                         text.as_str(),
                     );
-                    // sort by score, if scores are equal by alphabetical order
+                    // sort descending by score
+                    // else ascending, by alphabet
                     dirs.sort_unstable_by(|a, b| {
                         a.score()
                             .cmp(&b.score())
+                            .reverse()
                             .then(a.directory().location().cmp(b.directory().location()))
                     });
                     dirs
@@ -93,7 +95,7 @@ impl QueryPart {
                     / scored_dirs.len() as f64;
 
                 let half_of_highest_score = scored_dirs
-                    .last() // since it's sorted by score the last one has the most score
+                    .first() // since it's sorted by score descending the first one has the most score
                     .map(ScoredDirectory::score)
                     .unwrap_or_default() as f64
                     / 2.;
