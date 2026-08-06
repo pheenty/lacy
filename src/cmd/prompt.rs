@@ -57,17 +57,19 @@ impl Run for Prompt {
                     ))
                 })
                 .collect::<Vec<_>>();
-            paths.sort_unstable_by(|(path_a, name_a, score_a), (path_b, name_b, score_b)| {
+            paths.sort_unstable_by(|(path_a, _, _), (path_b, _, _)| {
                 // sort by path for later deduplication
-                path_a
-                    .cmp(path_b)
-                    // then by score, ascending
-                    // this is because it is later shown in reverse
-                    .then(score_a.cmp(score_b))
-                    // then by name descending
-                    .then(name_b.cmp(name_a))
+                path_a.cmp(path_b)
             });
             paths.dedup_by(|(path_a, _, _), (path_b, _, _)| path_a == path_b);
+            paths.sort_unstable_by(|(_, name_a, score_a), (_, name_b, score_b)| {
+                // now that we've deduplicated it we can sort it for display
+                // first by score descending
+                score_b
+                    .cmp(score_a)
+                    // then by name ascending
+                    .then(name_a.cmp(name_b))
+            });
             paths
                 .into_iter()
                 .map(|(_, name, _)| name)
