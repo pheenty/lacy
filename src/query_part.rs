@@ -1,4 +1,4 @@
-use std::{env::home_dir, path::PathBuf};
+use std::{env::home_dir, path::Path};
 
 use crate::directory::{scored_directories, sub_directories, Directory, ScoredDirectory};
 
@@ -37,66 +37,58 @@ impl From<&str> for QueryPart {
 }
 
 impl QueryPart {
-    pub fn matching_directories(&self, dirs: &[Directory]) -> Vec<Directory> {
+    pub fn matching_directories(&self, dirs: &[ScoredDirectory]) -> Vec<ScoredDirectory> {
         match &self {
             QueryPart::Tilde => {
-                let Ok(dir) =
-                    Directory::try_from(home_dir().unwrap_or(PathBuf::from("/")).as_path())
+                let Ok(dir) = Directory::try_from(home_dir().as_deref().unwrap_or(Path::new("/")))
                 else {
                     return vec![];
                 };
-                vec![dir]
+                vec![ScoredDirectory::new(dir, 0)]
             }
             QueryPart::Root => {
-                let Ok(dir) = Directory::try_from(PathBuf::from("/").as_path()) else {
+                let Ok(dir) = Directory::try_from(Path::new("/")) else {
                     eprintln!("Couldn't create Directory from root!");
                     return vec![];
                 };
-                vec![dir]
+                vec![ScoredDirectory::new(dir, 0)]
             }
             QueryPart::Skip(depth) => dirs
                 .iter()
-                .flat_map(|dir| sub_directories(dir.location(), *depth))
+                .flat_map(|dir| {
+                    sub_directories(dir.directory().location(), *depth)
+                        .into_iter()
+                        .map(|subdir| ScoredDirectory::new(subdir, dir.score()))
+                })
                 .collect(),
-            QueryPart::Back(amount) => {
-                let Some(target_dir) = dirs.first() else {
-                    return vec![];
-                };
-                let target_location = target_dir.location().join("../".repeat(*amount as usize));
-                let Ok(dir) = Directory::try_from(target_location.as_path()) else {
-                    return vec![];
-                };
-                vec![dir]
-            }
+            QueryPart::Back(amount) => dirs
+                .iter()
+                .filter_map(|dir| {
+                    Some(ScoredDirectory::new(
+                        Directory::try_from(
+                            dir.directory()
+                                .location()
+                                .join("../".repeat(*amount as usize))
+                                .as_ref(),
+                        )
+                        .ok()?,
+                        dir.score(),
+                    ))
+                })
+                .collect(),
             QueryPart::Text(text) => {
-                let scored_dirs = {
-                    let mut dirs = scored_directories(
-                        &dirs
-                            .iter()
-                            .flat_map(|dir| sub_directories(dir.location(), 0))
-                            .collect::<Vec<_>>(),
-                        text.as_str(),
-                    );
-                    // sort descending by score
-                    // else ascending, by alphabet
-                    dirs.sort_unstable_by(|a, b| {
-                        a.score()
-                            .cmp(&b.score())
-                            .reverse()
-                            .then(a.directory().location().cmp(b.directory().location()))
-                    });
-                    dirs
-                };
+                let scored_dirs = scored_directories(
+                    &dirs
+                        .iter()
+                        .flat_map(|dir| sub_directories(dir.directory().location(), 0))
+                        .collect::<Vec<_>>(),
+                    text.as_str(),
+                );
 
-                let average_score = scored_dirs
+                let min_score = scored_dirs
                     .iter()
-                    .map(|scored_dir| f64::from(scored_dir.score()))
-                    .sum::<f64>()
-                    / scored_dirs.len() as f64;
-
-                let half_of_highest_score = scored_dirs
-                    .first() // since it's sorted by score descending the first one has the most score
                     .map(ScoredDirectory::score)
+                    .max()
                     .unwrap_or_default() as f64
                     / 2.;
 
@@ -105,9 +97,9 @@ impl QueryPart {
                     // remove dirs with low score
                     .filter(|scored_dir| {
                         let score = scored_dir.score() as f64;
-                        score > 0. && score >= average_score && score >= half_of_highest_score
+                        score > 0. && score >= min_score
                     })
-                    .map(|scored_dir| scored_dir.directory().clone())
+                    .cloned()
                     .collect()
             }
         }
