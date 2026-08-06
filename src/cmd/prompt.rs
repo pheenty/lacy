@@ -61,10 +61,11 @@ impl Run for Prompt {
                 // sort by path for later deduplication
                 path_a
                     .cmp(path_b)
-                    // then by score descending
-                    .then(score_b.cmp(score_a))
-                    // then by name, ascending
-                    .then(name_a.cmp(name_b))
+                    // then by score, ascending
+                    // this is because it is later shown in reverse
+                    .then(score_a.cmp(score_b))
+                    // then by name descending
+                    .then(name_b.cmp(name_a))
             });
             paths.dedup_by(|(path_a, _, _), (path_b, _, _)| path_a == path_b);
             paths
