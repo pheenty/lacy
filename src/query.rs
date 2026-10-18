@@ -66,15 +66,16 @@ impl Query {
         match env::var("LACY_FILTER_CWD").as_deref() {
             Ok("0") => (),
             Ok("2") => directories.retain(|dir| {
-                !fs::canonicalize(dir.location()).is_ok_and(|dir| cwd.starts_with(dir))
+                !fs::canonicalize(dir.directory().location()).is_ok_and(|dir| cwd.starts_with(dir))
             }),
-            Ok("1") | Ok(_) | Err(_) => directories
-                .retain(|dir| !fs::canonicalize(dir.location()).is_ok_and(|dir| dir == cwd)),
+            Ok("1") | Ok(_) | Err(_) => directories.retain(|dir| {
+                !fs::canonicalize(dir.directory().location()).is_ok_and(|dir| dir == cwd)
+            }),
         }
 
         directories
             .iter()
-            .map(|dir| (dir.directory().location().clone(), dir.score()))
+            .map(|dir| (dir.directory().location().to_owned(), dir.score()))
             .collect()
     }
 
@@ -82,7 +83,7 @@ impl Query {
         if self.query.trim().is_empty() {
             return sub_directories(cwd, 0)
                 .iter()
-                .map(|dir| (dir.location().clone(), 0))
+                .map(|dir| (dir.location().to_owned(), 0))
                 .collect();
         }
         if self.query.ends_with(' ') {
@@ -90,7 +91,7 @@ impl Query {
                 .results(cwd)
                 .iter()
                 .flat_map(|dir| sub_directories(&dir.0, 0))
-                .map(|dir| (dir.location().clone(), 0))
+                .map(|dir| (dir.location().to_owned(), 0))
                 .collect();
         }
         if let QueryPart::Text(_) = &self.parts.last().unwrap_or(&QueryPart::Root) {
